@@ -1,0 +1,305 @@
+<!-- HTML for article "FFT of waveIn audio signals" by Fred Ackers,Fred Ackers
+     URL: http://www.codeproject.com/audio/waveInFFT.asp
+
+     Article content copyright Fred Ackers,Fred Ackers
+     All formatting, additions and alterations Copyright © CodeProject, 1999-2007
+-->
+<!----------------------------- Ignore ----------------------------->
+<link rel="stylesheet" type=text/css href="http://www.codeproject.com/styles/global.css">
+<p><b>Please choose 'View Source' in your browser to view the HTML, or  
+File | Save to save this file to your hard drive for editing.</b></p>
+<hr size=1 noshade>
+<!----------------------------- Ignore ----------------------------->
+
+
+<!----------------------------- Article Starts ----------------------------->
+
+<UL class=download>
+<LI><A href="http://www.codeproject.com/audio/waveInFFT/waveInFFT_demo.zip">Download demo project - 25.8 Kb</A> </LI></UL>
+<P><IMG height=357 alt="Sample Image - waveInFFT.jpg" src="http://www.codeproject.com/audio/waveInFFT/waveInFFT.jpg" width=486></P>
+<P><IMG height=357 alt="Sample Image - waveInFFT_microeq.jpg" src="http://www.codeproject.com/audio/waveInFFT/waveInFFT_microeq.jpg" width=486></P>
+<P><IMG height=357 alt="Sample Image - waveInFFT_Oscilliscope.jpg" src="http://www.codeproject.com/audio/waveInFFT/waveInFFT_Oscilliscope.jpg" width=486></P>
+<P><IMG height=357 alt="Sample Image - waveInFFT_peak.jpg" src="http://www.codeproject.com/audio/waveInFFT/waveInFFT_peak.jpg" width=486></P>
+<P><IMG height=357 alt="Sample Image - waveInFFT_peakalt.jpg" src="http://www.codeproject.com/audio/waveInFFT/waveInFFT_peakalt.jpg" width=486></P>
+<P><IMG height=357 alt="Sample Image - waveInFFT_PixelGram.jpg" src="http://www.codeproject.com/audio/waveInFFT/waveInFFT_PixelGram.jpg" width=486></P>
+<P><IMG height=357 alt="Sample Image - waveInFFT_spectrum.jpg" src="http://www.codeproject.com/audio/waveInFFT/waveInFFT_spectrum.jpg" width=486></P>
+<H2>Introduction</H2>
+<P>The Fast Fourier Transform (FFT) allows users to view the spectrum content of an audio signal. The FFT code presented here was written by <A href="http://www.intersrv.com/~dcross/fft.html" target=_blank>Don Cross</A>, his homepage appears to have subsequently been taken down. Rather than explain the mathematical theory of the FFT, I will attempt to explain its usefulness as it relates to audio signals.</P>
+<P>The FFT allows users to obtain the spectral makeup of an audio signal, obtain the decibels of its various frequencies, or obtain the intensity of its various frequencies. Spectral viewers (shown in the image above), Equalizers, or VU-Meters may all use the FFT in order to display their results. The difference between them then depends upon one of a couple of equations that take the real and imaginary components of the FFT, and return either the intensity or decibel levels to be used in the graphed result. The following code takes both the real and imaginary components of the FFT result, and returns the intensity and decibels.</P><PRE>inline double GetFrequencyIntensity(double re, double im)
+{
+    return sqrt((re*re)+(im*im));
+}
+#define mag_sqrd(re,im) (re*re+im*im)
+#define Decibels(re,im) ((re == 0 &amp;&amp; im == 0) ? (0) : 
+        10.0 * log10(double(mag_sqrd(re,im))))
+#define Amplitude(re,im,len) (GetFrequencyIntensity(re,im)/(len))
+#define AmplitudeScaled(re,im,len,scale) ((int)Amplitude(re,im,len)%scale)</PRE>
+<P>The FFT uses the audio signal as its real component, and uses a <CODE>NULL</CODE> pointer for its imaginary component indicating that the imaginary data does not exist. Upon its return, the FFT will return both the real and imaginary data components based upon the data given as the real component. The is mirrored with the return samples so that <CODE>0-FFT_LEN/2</CODE> contains the data, and <CODE>FFT_LEN/2</CODE> to <CODE>FFT_LEN</CODE> contains a reverse of the data. This mistake was corrected in my code. The code that performs the FFT follows:</P><PRE>    DWORD nCount = 0;
+    or (DWORD dw = 0; dw < FFT_LEN; dw++)
+	{
+		{
+			//copy audio signal to fft real component for left channel
+			finleft[nCount] = (double)((short*)pwh->lpData)[dw++];
+			//copy audio signal to fft real component for right channel
+			finright[nCount++] = (double)((short*)pwh->lpData)[dw];
+		}
+	}
+	//Perform FFT on left channel
+	fft_double(FFT_LEN/2,0,finleft,NULL,fout,foutimg);
+	float re,im,fmax=-99999.9f,fmin=99999.9f;
+	for(int i=1;i < FFT_LEN/4;i++)//Use FFT_LEN/4 since the data is mirrored within the array.
+	{
+		re = (float)fout[i];
+		im = (float)foutimg[i];
+		//get amplitude and scale to 0..256 range
+		//fdraw[i]=AmplitudeScaled(re,im,FFT_LEN/2,256);
+		fdraw[i] = ((int)mag_sqrd(re,im))%256;
+		if (fdraw[i] > fmax)
+		{
+			fmax = (float)fdraw[i];
+		}
+		if (fdraw[i] < fmin)
+		{
+			fmin = (float)fdraw[i];
+		}
+	}
+	//Use this to send the average band amplitude to something
+	int nAvg, nBars=16, nCur = 0;
+	for(int i=1;i < FFT_LEN/4;i++)
+	{
+		nAvg = 0;
+		for (int n=0; n < nBars; n++)
+		{
+			nAvg += (int)fdraw[i];
+		}
+		nAvg /= nBars;
+		//Send data here to something,
+		//nothing to send it to so we print it.
+		TRACE("Average for Bar#%d is %d\n",nCur++,nAvg);
+		i+=nBars-1;
+	}
+	DataHolder* pDataHolder = (DataHolder*)lpData;
+	// Draw left channel
+	CFrequencyGraph* pPeak = (CFrequencyGraph*)pDataHolder->pData;
+	if (::IsWindow(pPeak->GetSafeHwnd()))
+	{
+		pPeak->SetYRange(0,256);
+		pPeak->Update(FFT_LEN/4,fdraw);
+	}
+	
+	// Perform FFT on right channel
+	fmax=-99999.9f,fmin=99999.9f;
+	fft_double(FFT_LEN/2,0,finright,NULL,fout,foutimg);
+	fdraw[0] = fdraw[FFT_LEN/4] = 0;
+	for(int i=1;i < FFT_LEN/4;i++)//Use FFT_LEN/4 since the data is mirrored within the array.
+	{
+		re = (float)fout[i];
+		im = (float)foutimg[i];
+		//get Decibels in 0-110 range
+		fdraw[i] = Decibels(re,im);
+		if (fdraw[i] > fmax)
+		{
+			fmax = (float)fdraw[i];
+		}
+		if (fdraw[i] < fmin)
+		{
+			fmin = (float)fdraw[i];
+		}
+	}
+	//Draw right channel
+	CFrequencyGraph* pPeak2 = (CFrequencyGraph*)pDataHolder->pData2;
+	if (::IsWindow(pPeak2->GetSafeHwnd()))
+	{
+		pPeak2->SetNumberOfSteps(FFT_LEN/64);
+		//pPeak2->SetLogScale(TRUE);
+		pPeak2->SetYRange((int)0,(int)110);//Use updated dynamic range for scaling
+		pPeak2->Update(FFT_LEN/4,fdraw);
+	}</PRE>
+<P>This code is contained in a callback function that is called every time the <CODE>waveIn</CODE> functions return with updated audio signal data. The code that actually performs the FFT looks like:</P><PRE>void fft_double (unsigned int p_nSamples, bool p_bInverseTransform, 
+    double *p_lpRealIn, double *p_lpImagIn, 
+    double *p_lpRealOut, double *p_lpImagOut)
+{
+
+    if(!p_lpRealIn || !p_lpRealOut || !p_lpImagOut) return;
+
+
+    unsigned int NumBits;
+    unsigned int i, j, k, n;
+    unsigned int BlockSize, BlockEnd;
+
+    double angle_numerator = 2.0 * PI;
+    double tr, ti;
+
+    if( !IsPowerOfTwo(p_nSamples) )
+    {
+        return;
+    }
+
+    if( p_bInverseTransform ) angle_numerator = -angle_numerator;
+
+    NumBits = NumberOfBitsNeeded ( p_nSamples );
+
+
+    for( i=0; i &lt; p_nSamples; i++ )
+    {
+        j = ReverseBits ( i, NumBits );
+        p_lpRealOut[j] = p_lpRealIn[i];
+        p_lpImagOut[j] = (p_lpImagIn == NULL) ? 0.0 : p_lpImagIn[i];
+    }
+
+
+    BlockEnd = 1;
+    for( BlockSize = 2; BlockSize &lt;= p_nSamples; BlockSize &lt;&lt;= 1 )
+    {
+        double delta_angle = angle_numerator / (double)BlockSize;
+        double sm2 = sin ( -2 * delta_angle );
+        double sm1 = sin ( -delta_angle );
+        double cm2 = cos ( -2 * delta_angle );
+        double cm1 = cos ( -delta_angle );
+        double w = 2 * cm1;
+        double ar[3], ai[3];
+
+        for( i=0; i &lt; p_nSamples; i += BlockSize )
+        {
+
+            ar[2] = cm2;
+            ar[1] = cm1;
+
+            ai[2] = sm2;
+            ai[1] = sm1;
+
+            for ( j=i, n=0; n &lt; BlockEnd; j++, n++ )
+            {
+
+                ar[0] = w*ar[1] - ar[2];
+                ar[2] = ar[1];
+                ar[1] = ar[0];
+
+                ai[0] = w*ai[1] - ai[2];
+                ai[2] = ai[1];
+                ai[1] = ai[0];
+
+                k = j + BlockEnd;
+                tr = ar[0]*p_lpRealOut[k] - ai[0]*p_lpImagOut[k];
+                ti = ar[0]*p_lpImagOut[k] + ai[0]*p_lpRealOut[k];
+
+                p_lpRealOut[k] = p_lpRealOut[j] - tr;
+                p_lpImagOut[k] = p_lpImagOut[j] - ti;
+
+                p_lpRealOut[j] += tr;
+                p_lpImagOut[j] += ti;
+
+            }
+        }
+
+        BlockEnd = BlockSize;
+
+    }
+
+
+    if( p_bInverseTransform )
+    {
+        double denom = (double)p_nSamples;
+
+        for ( i=0; i &lt; p_nSamples; i++ )
+        {
+            p_lpRealOut[i] /= denom;
+            p_lpImagOut[i] /= denom;
+        }
+    }
+
+}</PRE>
+<P>And it requires the following supporting functions:</P><PRE>///////////////////////////////////////////////////////////
+// check is a number is a power of 2
+///////////////////////////////////////////////////////////
+
+bool IsPowerOfTwo( unsigned int p_nX )
+{
+
+    if( p_nX &lt; 2 ) return false;
+
+    if( p_nX &amp; (p_nX-1) ) return false;
+
+    return true;
+
+}
+
+
+///////////////////////////////////////////////////////////
+// return needed bits for fft
+///////////////////////////////////////////////////////////
+
+unsigned int NumberOfBitsNeeded( unsigned int p_nSamples )
+{
+
+    int i;
+
+    if( p_nSamples &lt; 2 )
+    {
+        return 0;
+    }
+
+    for ( i=0; ; i++ )
+    {
+        if( p_nSamples &amp; (1 &lt;&lt; i) ) return i;
+    }
+
+}
+
+
+
+///////////////////////////////////////////////////////////
+// ?
+///////////////////////////////////////////////////////////
+
+unsigned int ReverseBits(unsigned int p_nIndex, unsigned int p_nBits)
+{
+
+    unsigned int i, rev;
+
+    for(i=rev=0; i &lt; p_nBits; i++)
+    {
+        rev = (rev &lt;&lt; 1) | (p_nIndex &amp; 1);
+        p_nIndex &gt;&gt;= 1;
+    }
+
+    return rev;
+}
+
+
+
+///////////////////////////////////////////////////////////
+// return a frequency from the basefreq and num of samples
+///////////////////////////////////////////////////////////
+
+double Index_to_frequency(unsigned int p_nBaseFreq, 
+    unsigned int p_nSamples, unsigned int p_nIndex)
+{
+
+    if(p_nIndex &gt;= p_nSamples)
+    {
+        return 0.0;
+    }
+    else if(p_nIndex &lt;= p_nSamples/2)
+    {
+        return ( (double)p_nIndex / 
+                 (double)p_nSamples * p_nBaseFreq );
+    }
+    else
+    {
+        return ( -(double)(p_nSamples-p_nIndex) / 
+                  (double)p_nSamples * p_nBaseFreq );
+    }
+
+}</PRE>
+<P>The included sample class, <CODE>CFrequencyGraph</CODE>, will draw a sample EQ, peak meter, and spectral graph using the frequency intensity. Hopefully, this serves as a decent introduction to the uses and basics of the Fast Fourier Transform for audio signals. Other functions of the FFT include using it in combination with a <A href="http://www.gamedev.net/reference/programming/features/beatdetection/" target=_blank>Beat Detection Algorithm</A> to detect beats in an audio signal. Another page with useful FFT information is located at <A href="http://www.dsptutor.freeuk.com/jsanalyser/FFTSpectrumAnalyser.html" target=_blank>FFT Spectrum Analyser</A>.</P>
+<P>This article uses <CODE>waveIn*</CODE> functions to retrieve the soundcard's data from the playing source. Therefore, you must manually open your soundcard properties and change the recording source to use mono/stereo mix or waveIn as the selected recording line. Also, if you set the playback wave option to <CODE>false</CODE>, this will override the recording options and no sound will appear. For information about doing an inverse FFT for transforming frequencies into an audio signal, please do a Google search on "Inverse FFT" or "IFFT".</P>
+<H2>History</H2>
+<UL>
+<LI>Version 1.3: Fixed Spectrum drawing, Changed Pixelgram color, changed Process routine to match new Recording parameters.
+<LI>Version 1.2: Fixed many drawing bugs, changed to use amplitude scaled and decibels.</LI>
+</UL>
+
+
+
+<!----------------------------- Article Ends ----------------------------->

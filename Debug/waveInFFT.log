@@ -1,0 +1,8 @@
+﻿  SpectrumGraph.cpp
+c:\users\rayman\desktop\waveinfft_demo\spectrumgraph.cpp(106): warning C4244: 'inicializando': conversión de 'double' a 'int'; posible pérdida de datos
+c:\users\rayman\desktop\waveinfft_demo\spectrumgraph.cpp(82): warning C4101: 'py': variable local sin referencia
+c:\users\rayman\desktop\waveinfft_demo\spectrumgraph.cpp(82): warning C4101: 'ctr': variable local sin referencia
+c:\users\rayman\desktop\waveinfft_demo\spectrumgraph.cpp(82): warning C4101: 'n': variable local sin referencia
+c:\users\rayman\desktop\waveinfft_demo\spectrumgraph.cpp(82): warning C4101: 'half': variable local sin referencia
+Fourier.obj : warning LNK4075: se omite '/EDITANDCONTINUE' debido a la especificación '/INCREMENTAL:NO'
+  waveInFFT.vcxproj -> C:\Users\RaymaN\Desktop\waveinFFT_demo\.\Debug\waveInFFT.exe

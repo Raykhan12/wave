@@ -1,0 +1,8 @@
+﻿Compilación iniciada a las 11-10-2017 17:33:21.
+     1>Proyecto "C:\Users\Edgardo Zambrano\Downloads\waveinFFT_demo\waveInFFT.vcxproj" en el nodo 2 (Build destinos).
+     1>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V120\Microsoft.CppBuild.targets(369,5): error MSB8031: Building an MFC project for a non-Unicode character set is deprecated. You must change the project property to Unicode or download an additional library. See http://go.microsoft.com/fwlink/p/?LinkId=286820 for more information.
+     1>Compilación del proyecto terminada "C:\Users\Edgardo Zambrano\Downloads\waveinFFT_demo\waveInFFT.vcxproj" (Build destinos) -- ERROR.
+
+ERROR al compilar.
+
+Tiempo transcurrido 00:00:00.24
